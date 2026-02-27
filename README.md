@@ -230,3 +230,39 @@ Choose ONE:
 * Add `removeFriendship(network, personA, personB)` (two-way removal + edge cases)
 * Add a filter: `sameSchoolOnly`
 * Add an explanation output: show the mutual friends list for the top suggestion
+
+## Example Runs (with outputs)
+
+- **Example A:** `addFriendship(network, "smo", "cory")` → updated entries:
+
+  - `smo` friends: ["palvreet", "brian", "cory"]
+  - `cory` friends: ["palvreet", "brian", "smo"]
+
+- **Example B:** `suggestFriends(network, "jasmine")` →
+
+  - `[ { id: "smo", mutualCount: 1 }, { id: "cory", mutualCount: 1 } ]`
+
+- **Example C:** `peopleYouMayKnow(network, "brian", { minMutualFriends: 2, sameCityOnly: true })` →
+
+  - `[ { id: "palvreet", mutualCount: 2 } ]`
+
+- **Example D:** `profileCompleteness(network, "palvreet")` →
+
+  - `80`
+
+## Deliverables
+
+- **Data structure:** The network is an adjacency-list object where each key is a user id and the value contains `details` (profile fields) and `friends` (array of friend ids). This keeps lookups and friend traversals simple.
+
+- **Function summaries:**
+  - `addFriendship(network, user1, user2)`: ensures both users exist then adds a mutual (two-way) friendship without duplicates.
+  - `suggestFriends(network, personId)`: returns friends-of-friends candidates with `mutualCount`, sorted by highest mutual friends.
+  - `peopleYouMayKnow(network, personId, options)`: applies filters (e.g., `minMutualFriends`, `sameCityOnly`, `excludeList`) to `suggestFriends` results.
+  - `profileCompleteness(network, personId)`: scores profile completeness (0–100) using the specified field rules.
+
+- **Run the examples:**
+
+```bash
+cd c:\Users\Sam Nasr\Documents\GitHub\5-8-graph-project-Smo0o
+node socialNetwork.js
+```

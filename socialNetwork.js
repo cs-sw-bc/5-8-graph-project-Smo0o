@@ -28,43 +28,116 @@ const network = {
 
 // Core Feature A — Add Friendship
 function addFriendship(network, user1, user2) {
-  // 1. Check if user1 exists in the network. If not, create a new entry with default details and empty friends array.
-  // 2. Check if user2 exists in the network. If not, create a new entry with default details and empty friends array.
-  // 3. If user2 is not already in user1's friends list, add it.
-  // 4. If user1 is not already in user2's friends list, add it.
+  if (!network[user1]) {
+    network[user1] = { details: { name: user1, city: "", bio: "", school: "", company: "" }, friends: [] };
+  }
+  if (!network[user2]) {
+    network[user2] = { details: { name: user2, city: "", bio: "", school: "", company: "" }, friends: [] };
+  }
+
+  var alreadyFriend = false;
+  for (var i = 0; i < network[user1].friends.length; i++) {
+    if (network[user1].friends[i] === user2) { alreadyFriend = true; break; }
+  }
+  if (!alreadyFriend) {
+    network[user1].friends.push(user2);
+  }
+
+  alreadyFriend = false;
+  for (var j = 0; j < network[user2].friends.length; j++) {
+    if (network[user2].friends[j] === user1) { alreadyFriend = true; break; }
+  }
+  if (!alreadyFriend) {
+    network[user2].friends.push(user1);
+  }
 }
 
 // Core Feature B — Suggest Friends (Friends-of-Friends)
 function suggestFriends(network, personId) {
-  // 1. If personId doesn't exist, return an empty list.
-  // 2. Create a structure to count mutuals, e.g.: counts = {} where keys are candidate IDs and values are counts
-  // 3. Loop through each direct friend of personId.
-  // 4. For each direct friend, loop through their friends (friends-of-friends).
-  // 5. For each candidate:
-  //    - If candidate is the user → skip
-  //    - If candidate is already a direct friend → skip
-  //    - Otherwise: Increase their count in counts
-  // 6. Convert counts into an array of { id, mutualCount }.
-  // 7. Sort it by mutualCount descending.
-  // 8. Return the sorted array.
+  if (!network[personId]) return [];
+
+  var counts = {};
+  var direct = network[personId].friends;
+
+  for (var i = 0; i < direct.length; i++) {
+    var friendId = direct[i];
+    if (!network[friendId]) continue;
+    var friendsOfFriend = network[friendId].friends;
+    for (var j = 0; j < friendsOfFriend.length; j++) {
+      var candidate = friendsOfFriend[j];
+      if (candidate === personId) continue;
+
+      var isDirect = false;
+      for (var k = 0; k < direct.length; k++) {
+        if (direct[k] === candidate) { isDirect = true; break; }
+      }
+      if (isDirect) continue;
+
+      if (!counts[candidate]) counts[candidate] = 0;
+      counts[candidate] = counts[candidate] + 1;
+    }
+  }
+
+  var result = [];
+  for (var id in counts) {
+    if (Object.prototype.hasOwnProperty.call(counts, id)) {
+      result.push({ id: id, mutualCount: counts[id] });
+    }
+  }
+
+  result.sort(function(a, b) { return b.mutualCount - a.mutualCount; });
+  return result;
 }
 
 // Core Feature C — People You May Know (Filters)
 function peopleYouMayKnow(network, personId, options) {
-  // 1. Start by generating suggestions with mutual counts (same logic as suggestFriends).
-  // 2. Loop over the suggestions and apply filters using if/else:
-  //    - if mutualCount < minMutualFriends → skip
-  //    - if sameCityOnly and cities don't match → skip
-  //    - if candidate in excludeList → skip
-  // 3. Return the filtered results (keep sorting by mutualCount).
+  if (!network[personId]) return [];
+  options = options || {};
+  var minMutual = options.minMutualFriends || 0;
+  var sameCityOnly = !!options.sameCityOnly;
+  var excludeList = options.excludeList || [];
+
+  var suggestions = suggestFriends(network, personId);
+  var filtered = [];
+
+  for (var i = 0; i < suggestions.length; i++) {
+    var cand = suggestions[i];
+    if (cand.mutualCount < minMutual) continue;
+
+    if (sameCityOnly) {
+      var userCity = (network[personId] && network[personId].details && network[personId].details.city) || "";
+      var candCity = (network[cand.id] && network[cand.id].details && network[cand.id].details.city) || "";
+      if (userCity !== candCity) continue;
+    }
+
+    var excluded = false;
+    for (var j = 0; j < excludeList.length; j++) {
+      if (excludeList[j] === cand.id) { excluded = true; break; }
+    }
+    if (excluded) continue;
+
+    filtered.push(cand);
+  }
+
+  filtered.sort(function(a, b) { return b.mutualCount - a.mutualCount; });
+  return filtered;
 }
 
 // Core Feature D — Profile Completeness
 function profileCompleteness(network, personId) {
-  // 1. If person doesn't exist, return 0.
-  // 2. Start score at 0.
-  // 3. Use if/else checks for each rule and add points.
-  // 4. Return final score.
+  if (!network[personId]) return 0;
+  var score = 0;
+  var details = network[personId].details || {};
+
+  if (details.name && details.name !== "") { score += 20; }
+  if (details.city && details.city !== "") { score += 20; }
+  if (details.bio && details.bio !== "") { score += 20; }
+  if ((details.school && details.school !== "") || (details.company && details.company !== "")) { score += 20; }
+
+  var friendsCount = (network[personId].friends && network[personId].friends.length) || 0;
+  if (friendsCount >= 3) { score += 20; }
+
+  return score;
 }
 
 // Example usage (uncomment to test)
